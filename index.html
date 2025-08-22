@@ -3,145 +3,327 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AthletePath Demo — On-Device Pose</title>
+  <title>AthletePath — Turn Your Phone Into a Performance Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Inter, Arial, sans-serif; background:#0b0f1a; color:#fff; margin:0; }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
-    h1 { font-size: 22px; margin: 12px 0; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    #video, #canvas { width: 100%; border-radius: 8px; background:#111; }
-    .panel { background:#12182a; border:1px solid #1e2a4a; border-radius:8px; padding:12px; }
-    button { background:#2b6eff; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
-    .metric { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
-</head>
-<body>
-  <div class="wrap">
-    <h1>AthletePath — On-Device Pose (Webcam)</h1>
-    <p>All analysis runs locally in your browser. Demo metric: follow-through hold during a form shooting motion.</p>
-    <div class="grid">
-      <div class="panel">
-        <video id="video" playsinline muted></video>
-      </div>
-      <div class="panel">
-        <canvas id="canvas"></canvas>
-      </div>
-    </div>
-    <div class="panel" style="margin-top:12px;">
-      <button id="start">Start Analysis</button>
-      <button id="badge">Generate Badge</button>
-      <div id="out" style="margin-top:10px;">
-        <div>Follow-through hold: <span id="hold" class="metric">–</span> ms</div>
-        <div>Frames analyzed: <span id="frames" class="metric">0</span></div>
-        <div id="tip" style="margin-top:6px;"></div>
-        <small>Tip: Simulate a shot motion in front of the camera. We detect when your wrist rises above your shoulder and measure how long you hold it.</small>
-      </div>
-    </div>
-  </div>
-  <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const startBtn = document.getElementById('start');
-    const badgeBtn = document.getElementById('badge');
-    const holdEl = document.getElementById('hold');
-    const framesEl = document.getElementById('frames');
-    const tipEl = document.getElementById('tip');
-
-    let detector, running = false, rafId;
-    let prevTs = 0, frameCount = 0;
-    let releaseDetected = false, holdStart = 0, holdMs = 0;
-
-    function drawKeypoints(keypoints) {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      ctx.lineWidth = 2;
-      keypoints.forEach(k => {
-        if (k.score > 0.3) {
-          ctx.fillStyle = '#00ffd0';
-          ctx.beginPath();
-          ctx.arc(k.x, k.y, 4, 0, 2*Math.PI);
-          ctx.fill();
-        }
-      });
+    :root {
+      --primary: #FF6B35;
+      --secondary: #004643;
+      --accent: #00D9FF;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --dark: #0A0E27;
+      --card: #1A1F3A;
+      --border: #2A3050;
+      --text: #E4E4E7;
+      --muted: #9CA3AF;
     }
 
-    function getKP(map, name) {
-      return map.get(name);
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--dark) 0%, #0F172A 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    function msSince(perfStart) { return performance.now() - perfStart; }
-
-    function coachingTip(ms) {
-      if (ms === 0) return 'Make a smooth shooting motion and hold your follow-through.';
-      if (ms < 150) return 'Tip: Hold your follow-through longer (aim 200–300 ms).';
-      if (ms > 400) return 'Great hold! Keep it between 200–400 ms for consistency.';
-      return 'Nice! Your follow-through hold is in the target range.';
+    /* Header */
+    .header {
+      background: rgba(10, 14, 39, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
-    async function init() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', width: 640, height: 480 } });
-      video.srcObject = stream;
-      await video.play();
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, {
-        modelType: 'lightning'
-      });
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    async function loop(ts) {
-      if (!running) return;
-      const poses = await detector.estimatePoses(video, { flipHorizontal: true });
-      frameCount++;
-      framesEl.textContent = frameCount.toString();
-
-      if (poses[0]) {
-        const kp = new Map(poses[0].keypoints.map(k => [k.name, k]));
-        drawKeypoints(poses[0].keypoints);
-
-        // Right side wrist/shoulder heuristic for follow-through
-        const rw = getKP(kp, 'right_wrist');
-        const rs = getKP(kp, 'right_shoulder');
-
-        if (rw && rs && rw.score > 0.3 && rs.score > 0.3) {
-          // Wrist above shoulder = likely post-release follow-through
-          const wristAbove = rw.y < rs.y - 10; // pixels; negative because y increases downward
-          if (!releaseDetected && wristAbove) {
-            releaseDetected = true;
-            holdStart = performance.now();
-          }
-          if (releaseDetected) {
-            if (wristAbove) {
-              holdMs = performance.now() - holdStart;
-            } else {
-              // End of hold window
-              releaseDetected = false;
-            }
-          }
-          holdEl.textContent = Math.round(holdMs).toString();
-          tipEl.textContent = coachingTip(holdMs);
-        }
-      }
-
-      rafId = requestAnimationFrame(loop);
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    startBtn.onclick = async () => {
-      if (!detector) await init();
-      if (!running) {
-        running = true; frameCount = 0; holdMs = 0; releaseDetected = false;
-        rafId = requestAnimationFrame(loop);
-        startBtn.textContent = 'Running…';
-      }
-    };
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
 
-    badgeBtn.onclick = () => {
-      const badge = document.createElement('canvas');
-      badge.width = 600; badge.height = 320;
-      const bctx = badge.getContext('2d');
-      bctx.fillStyle = '#0b0f1a'; b
+    .logo-text {
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .badge-live {
+      background: var(--success);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      animation: pulse 2s infinite;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, white 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 600px;
+      margin: 0 auto 32px;
+      line-height: 1.6;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 32px;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .status-item {
+      text-align: center;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .status-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .status-value {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-value.good { color: var(--success); }
+    .status-value.warning { color: var(--warning); }
+    .status-value.poor { color: var(--danger); }
+
+    /* Video Grid */
+    .video-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 768px) {
+      .video-grid { grid-template-columns: 1fr; }
+    }
+
+    .video-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .video-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0, 217, 255, 0.2);
+    }
+
+    .video-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .video-title {
+      font-weight: 600;
+      color: white;
+    }
+
+    .video-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .status-dot.active {
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    #video, #canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: black;
+      min-height: 320px;
+    }
+
+    /* Controls */
+    .controls {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 160px;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #FF8C61 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #005A57;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Metrics Display */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: rgba(0, 217, 255, 0.05);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.3s;
+    }
+
+    .metric-card:hover {
+      background: rgba(0, 217, 255, 0.1);
+      transform: scale(1.02);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .metric-tip {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    /* Coaching Tips */
+    .coaching-panel {
+      background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(0, 217, 255, 0.1) 100%);
+      border: 1px solid var(--primary);
+      border
