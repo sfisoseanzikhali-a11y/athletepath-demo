@@ -1,329 +1,104 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
+  <title>AthletePath — Turn Any Phone Into a Performance Lab</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AthletePath — Turn Your Phone Into a Performance Lab</title>
+  <meta name="description" content="AthletePath uses on-device AI to give African youth athletes pro-level biomechanics analysis, personalized coaching, and verified skill badges—offline-first, no wearables." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #FF6B35;
-      --secondary: #004643;
-      --accent: #00D9FF;
-      --success: #10B981;
-      --warning: #F59E0B;
-      --danger: #EF4444;
-      --dark: #0A0E27;
-      --card: #1A1F3A;
-      --border: #2A3050;
-      --text: #E4E4E7;
-      --muted: #9CA3AF;
+      --bg: #0b1020;
+      --bg2: #0f1730;
+      --card: #131a33;
+      --card2: #1a2242;
+      --text: #e6e7ea;
+      --muted: #aab0c0;
+      --accent: #00d9ff;
+      --primary: #ff6b35;
+      --good: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --border: #263055;
+      --glow: 0 10px 40px rgba(0, 217, 255, 0.15);
     }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: radial-gradient(1200px 600px at 70% -20%, #13224a 0%, transparent 60%), linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%); color: var(--text); font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 1160px; margin: 0 auto; padding: 20px; }
+    header { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px); background: rgba(11,16,32,0.6); border-bottom: 1px solid var(--border); }
+    .head { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+    .brand { display:flex; align-items:center; gap: 12px; }
+    .logo { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--primary), var(--accent)); display:flex; align-items:center; justify-content:center; font-weight: 800; color: #081018; }
+    .name { font-weight: 800; font-size: 20px; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .chip { background: #122438; border: 1px solid var(--border); color: var(--muted); padding: 8px 12px; border-radius: 999px; font-size: 12px; }
+    .hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: center; padding: 28px 0 8px; }
+    @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } }
+    h1 { font-size: clamp(28px, 3.8vw, 48px); margin: 0 0 10px; line-height: 1.1; }
+    .sub { color: var(--muted); font-size: 18px; line-height: 1.6; margin-bottom: 14px; }
+    .cta { display:flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+    .btn { padding: 12px 18px; border: 0; border-radius: 12px; color: #07131a; background: linear-gradient(135deg, var(--primary), #ff8c61); font-weight: 700; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,107,53,0.3); }
+    .btn.sec { background: #122438; color: var(--text); border: 1px solid var(--border); }
+    .card { background: linear-gradient(180deg, var(--card) 0%, var(--card2) 100%); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--glow); }
+    .panel { padding: 16px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+    .tag { font-size: 12px; letter-spacing: .06em; color: var(--muted); text-transform: uppercase; }
+    .h2 { font-size: 22px; font-weight: 800; margin: 4px 0 10px; }
+    .p { color: var(--muted); line-height: 1.6; }
+    .list { display: grid; gap: 10px; margin-top: 10px; }
+    .li { display:flex; gap: 10px; align-items: flex-start; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 7px; background: linear-gradient(135deg, var(--accent), #7af0ff); box-shadow: 0 0 0 3px rgba(0,217,255,0.15); }
+    /* Demo */
+    .demo { margin: 24px 0; }
+    .videoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .videoGrid { grid-template-columns: 1fr; } }
+    .videoHead { display:flex; align-items:center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+    .videoTitle { font-weight: 700; }
+    .live { display:flex; align-items:center; gap: 6px; color: var(--muted); font-size: 12px; }
+    .live .dot2 { width: 8px; height: 8px; border-radius: 50%; background: #2d3c6a; }
+    .live.active .dot2 { background: var(--good); animation: pulse 2s infinite; }
+    #video, #canvas { width: 100%; height: auto; background: #000; border-radius: 12px; min-height: 320px; }
+    /* Controls & Metrics */
+    .controls { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .btn.sm { font-size: 14px; padding: 10px 14px; border-radius: 10px;}
+    .metrics { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+    @media (max-width: 900px) { .metrics { grid-template-columns: 1fr; } }
+    .metric { background: rgba(0,217,255,0.06); border: 1px solid rgba(0,217,255,0.35); border-radius: 12px; padding: 12px; }
+    .mLbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .mVal { font-size: 26px; font-weight: 800; margin: 6px 0; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--danger); }
+    .tip { font-size: 14px; color: var(--text); }
+    .badgeNote { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    /* Sections */
+    .sec { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+    @media (max-width: 900px) { .sec { grid-template-columns: 1fr; } }
+    footer { color: var(--muted); font-size: 13px; padding: 40px 0; text-align: center; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); } 70% { box-shadow: 0 0 0 10px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
+  </style>
+  <!-- TFJS + Pose Detection (runs in browser only) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@3.5.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404"></script>
+</head>
+<body>
+  <header>
+    <div class="wrap head">
+      <div class="brand">
+        <div class="logo">AP</div>
+        <div class="name">AthletePath</div>
+        <div class="chip">On-device AI • Offline-first • No wearables</div>
+      </div>
+      <div class="chip">Demo build • In-browser only</div>
+    </div>
+  </header>
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: linear-gradient(135deg, var(--dark) 0%, #0F172A 100%);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Header */
-    .header {
-      background: rgba(10, 14, 39, 0.8);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 0;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .header-content {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 20px;
-    }
-
-    .logo-text {
-      font-size: 20px;
-      font-weight: 600;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .badge-live {
-      background: var(--success);
-      color: white;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-      animation: pulse 2s infinite;
-    }
-
-    /* Main Container */
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-
-    /* Hero Section */
-    .hero {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .hero h1 {
-      font-size: clamp(32px, 5vw, 48px);
-      font-weight: 700;
-      margin-bottom: 16px;
-      background: linear-gradient(135deg, white 0%, var(--accent) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero p {
-      color: var(--muted);
-      font-size: 18px;
-      max-width: 600px;
-      margin: 0 auto 32px;
-      line-height: 1.6;
-    }
-
-    /* Status Bar */
-    .status-bar {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 32px;
-      display: flex;
-      justify-content: space-around;
-      flex-wrap: wrap;
-      gap: 20px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    }
-
-    .status-item {
-      text-align: center;
-      flex: 1;
-      min-width: 140px;
-    }
-
-    .status-label {
-      color: var(--muted);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .status-value {
-      font-size: 28px;
-      font-weight: 600;
-      color: var(--accent);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .status-value.good { color: var(--success); }
-    .status-value.warning { color: var(--warning); }
-    .status-value.poor { color: var(--danger); }
-
-    /* Video Grid */
-    .video-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      margin-bottom: 32px;
-    }
-
-    @media (max-width: 768px) {
-      .video-grid { grid-template-columns: 1fr; }
-    }
-
-    .video-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      transition: transform 0.3s, box-shadow 0.3s;
-    }
-
-    .video-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 60px rgba(0, 217, 255, 0.2);
-    }
-
-    .video-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .video-title {
-      font-weight: 600;
-      color: white;
-    }
-
-    .video-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--muted);
-    }
-
-    .status-dot.active {
-      background: var(--success);
-      animation: pulse 2s infinite;
-    }
-
-    #video, #canvas {
-      width: 100%;
-      height: auto;
-      display: block;
-      background: black;
-      min-height: 320px;
-    }
-
-    /* Controls */
-    .controls {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 32px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    }
-
-    .button-group {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.3s;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 160px;
-      justify-content: center;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, #FF8C61 100%);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(255, 107, 53, 0.3);
-    }
-
-    .btn-secondary {
-      background: var(--secondary);
-      color: white;
-    }
-
-    .btn-secondary:hover {
-      background: #005A57;
-    }
-
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    /* Metrics Display */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .metric-card {
-      background: rgba(0, 217, 255, 0.05);
-      border: 1px solid var(--accent);
-      border-radius: 12px;
-      padding: 16px;
-      transition: all 0.3s;
-    }
-
-    .metric-card:hover {
-      background: rgba(0, 217, 255, 0.1);
-      transform: scale(1.02);
-    }
-
-    .metric-label {
-      color: var(--muted);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .metric-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 8px;
-    }
-
-    .metric-tip {
-      font-size: 14px;
-      color: var(--text);
-      line-height: 1.4;
-    }
-
-    /* Coaching Tips */
-    .coaching-panel {
-      background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(0, 217, 255, 0.1) 100%);
-      border: 1px solid var(--primary);
-      border
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <h1>Pro‑level performance analysis for every African youth athlete</h1>
+        <p class="sub">AthletePath turns any smartphone into a biomechanics lab. Record 3–5 drills, get instant technique scores and step‑by‑step coaching cues, and generate a verified skill badge—privately and offline.</p>
+        <div class="cta">
