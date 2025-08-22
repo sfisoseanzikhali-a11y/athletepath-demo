@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AthletePath Demo — On-Device Pose</title>
+  <style>
+    body { font-family: Inter, Arial, sans-serif; background:#0b0f1a; color:#fff; margin:0; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 22px; margin: 12px 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    #video, #canvas { width: 100%; border-radius: 8px; background:#111; }
+    .panel { background:#12182a; border:1px solid #1e2a4a; border-radius:8px; padding:12px; }
+    button { background:#2b6eff; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
+    .metric { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>AthletePath — On-Device Pose (Webcam)</h1>
+    <p>All analysis runs locally in your browser. Demo metric: follow-through hold during a form shooting motion.</p>
+    <div class="grid">
+      <div class="panel">
+        <video id="video" playsinline muted></video>
+      </div>
+      <div class="panel">
+        <canvas id="canvas"></canvas>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:12px;">
+      <button id="start">Start Analysis</button>
+      <button id="badge">Generate Badge</button>
+      <div id="out" style="margin-top:10px;">
+        <div>Follow-through hold: <span id="hold" class="metric">–</span> ms</div>
+        <div>Frames analyzed: <span id="frames" class="metric">0</span></div>
+        <div id="tip" style="margin-top:6px;"></div>
+        <small>Tip: Simulate a shot motion in front of the camera. We detect when your wrist rises above your shoulder and measure how long you hold it.</small>
+      </div>
+    </div>
+  </div>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('start');
+    const badgeBtn = document.getElementById('badge');
+    const holdEl = document.getElementById('hold');
+    const framesEl = document.getElementById('frames');
+    const tipEl = document.getElementById('tip');
+
+    let detector, running = false, rafId;
+    let prevTs = 0, frameCount = 0;
+    let releaseDetected = false, holdStart = 0, holdMs = 0;
+
+    function drawKeypoints(keypoints) {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      keypoints.forEach(k => {
+        if (k.score > 0.3) {
+          ctx.fillStyle = '#00ffd0';
+          ctx.beginPath();
+          ctx.arc(k.x, k.y, 4, 0, 2*Math.PI);
+          ctx.fill();
+        }
+      });
+    }
+
+    function getKP(map, name) {
+      return map.get(name);
+    }
+
+    function msSince(perfStart) { return performance.now() - perfStart; }
+
+    function coachingTip(ms) {
+      if (ms === 0) return 'Make a smooth shooting motion and hold your follow-through.';
+      if (ms < 150) return 'Tip: Hold your follow-through longer (aim 200–300 ms).';
+      if (ms > 400) return 'Great hold! Keep it between 200–400 ms for consistency.';
+      return 'Nice! Your follow-through hold is in the target range.';
+    }
+
+    async function init() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user', width: 640, height: 480 } });
+      video.srcObject = stream;
+      await video.play();
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, {
+        modelType: 'lightning'
+      });
+    }
+
+    async function loop(ts) {
+      if (!running) return;
+      const poses = await detector.estimatePoses(video, { flipHorizontal: true });
+      frameCount++;
+      framesEl.textContent = frameCount.toString();
+
+      if (poses[0]) {
+        const kp = new Map(poses[0].keypoints.map(k => [k.name, k]));
+        drawKeypoints(poses[0].keypoints);
+
+        // Right side wrist/shoulder heuristic for follow-through
+        const rw = getKP(kp, 'right_wrist');
+        const rs = getKP(kp, 'right_shoulder');
+
+        if (rw && rs && rw.score > 0.3 && rs.score > 0.3) {
+          // Wrist above shoulder = likely post-release follow-through
+          const wristAbove = rw.y < rs.y - 10; // pixels; negative because y increases downward
+          if (!releaseDetected && wristAbove) {
+            releaseDetected = true;
+            holdStart = performance.now();
+          }
+          if (releaseDetected) {
+            if (wristAbove) {
+              holdMs = performance.now() - holdStart;
+            } else {
+              // End of hold window
+              releaseDetected = false;
+            }
+          }
+          holdEl.textContent = Math.round(holdMs).toString();
+          tipEl.textContent = coachingTip(holdMs);
+        }
+      }
+
+      rafId = requestAnimationFrame(loop);
+    }
+
+    startBtn.onclick = async () => {
+      if (!detector) await init();
+      if (!running) {
+        running = true; frameCount = 0; holdMs = 0; releaseDetected = false;
+        rafId = requestAnimationFrame(loop);
+        startBtn.textContent = 'Running…';
+      }
+    };
+
+    badgeBtn.onclick = () => {
+      const badge = document.createElement('canvas');
+      badge.width = 600; badge.height = 320;
+      const bctx = badge.getContext('2d');
+      bctx.fillStyle = '#0b0f1a'; b
